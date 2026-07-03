@@ -1,0 +1,58 @@
+# LLM and AI
+litellm>=1.48.0
+
+# Web framework
+fastapi>=0.115.0
+uvicorn>=0.32.0
+websockets>=13.0
+
+# HTTP client
+httpx>=0.27.0
+
+# Data validation
+pydantic>=2.9.0
+pydantic-settings>=2.5.0
+
+# Configuration
+python-dotenv>=1.0.1
+click>=8.1.0
+
+# GitLab integration
+python-gitlab>=4.0.0
+
+# Telegram integration
+telethon>=1.36.0
+
+# iCloud integration (Calendar + Reminders via CalDAV)
+caldav>=1.3.0
+icalendar>=5.0.0
+
+# Web search
+duckduckgo-search>=7.0.0
+
+# Document processing (for Outline attachments)
+python-docx>=1.1.0
+
+# Markdown to HTML (for YouGile descriptions)
+markdown>=3.5.0
+
+# A2A Protocol (1.0 ввёл несовместимое API; код использует 0.3.x)
+a2a-sdk[http-server]>=0.3.26,<1.0
+
+# Auth (OIDC via Authentik)
+PyJWT>=2.8.0
+
+# PDF processing
+pymupdf>=1.24.0
+
+# Excel processing
+openpyxl>=3.1.0
+
+# File upload support
+python-multipart>=0.0.9
+
+# Browser automation
+playwright>=1.48.0
+
+# Utilities
+python-json-logger>=2.0.7

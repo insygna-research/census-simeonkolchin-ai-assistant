@@ -1,0 +1,51 @@
+---
+description: Docker и запуск проекта
+globs: ["**/Dockerfile", "**/docker-compose.yml", "**/*.py"]
+alwaysApply: true
+---
+
+# Docker Rules
+
+## КРИТИЧЕСКОЕ ПРАВИЛО: только Docker
+
+- **НИКОГДА не запускай сервисы локально** — только через `docker compose`
+- Для запуска: `docker compose up --build`
+- Для логов: `docker compose logs -f team-assistant`
+- Для остановки: `docker compose down`
+
+## Контейнер Team Assistant
+
+```yaml
+team-assistant:
+  ports: 8082:8080
+  volumes: ./data:/app/data
+  healthcheck: /health
+```
+
+- A2A Server на порту 8080 (внутренний)
+- Agent Card: `GET /.well-known/agent-card.json`
+- JSON-RPC: `POST /`
+- UI: `GET /ui`
+
+## Dockerfile
+
+```dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+USER agent
+```
+
+## Тестирование
+
+```bash
+# ✅ Правильно
+docker compose up --build
+docker compose exec team-assistant python -m pytest
+
+# ❌ Неправильно
+python main.py
+uvicorn src.app:app
+```

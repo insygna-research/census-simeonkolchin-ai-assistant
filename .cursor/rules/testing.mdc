@@ -1,0 +1,144 @@
+---
+description: Тестирование с pytest
+globs: ["**/tests/**/*.py", "**/test_*.py", "**/*_test.py"]
+alwaysApply: false
+---
+
+# Testing Rules
+
+## Структура тестов
+
+```
+tests/
+├── conftest.py           # Общие фикстуры
+├── unit/
+│   ├── test_services.py
+│   └── test_utils.py
+├── integration/
+│   └── test_api.py
+└── fixtures/
+    ├── images/
+    └── data.json
+```
+
+## Фикстуры (conftest.py)
+
+```python
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from main import app
+from database import Base, get_db
+
+@pytest.fixture(scope="function")
+def db_session():
+    """Изолированная БД для каждого теста."""
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    yield session
+    session.close()
+
+@pytest.fixture
+def client(db_session):
+    """Тестовый клиент с подменой зависимостей."""
+    def override_get_db():
+        yield db_session
+    
+    app.dependency_overrides[get_db] = override_get_db
+    yield TestClient(app)
+    app.dependency_overrides.clear()
+
+@pytest.fixture
+def sample_project(db_session):
+    """Тестовый проект."""
+    from models import Project
+    project = Project(name="Test Project", description="For testing")
+    db_session.add(project)
+    db_session.commit()
+    return project
+```
+
+## Паттерн AAA (Arrange-Act-Assert)
+
+```python
+def test_create_calibration_point_success(client, sample_calibration, sample_assay_line):
+    # Arrange — подготовка
+    point_data = {
+        "signal": 125.5,
+        "concentration": 50.0,
+        "assay_line_id": str(sample_assay_line.id)
+    }
+    
+    # Act — действие
+    response = client.post(
+        f"/api/calibrations/{sample_calibration.id}/points",
+        json=point_data
+    )
+    
+    # Assert — проверка
+    assert response.status_code == 200
+    data = response.json()
+    assert data["signal"] == 125.5
+    assert data["concentration"] == 50.0
+    assert "id" in data
+```
+
+## Именование тестов
+
+```python
+# ✅ Описательные имена: test_<что>_<условие>_<результат>
+def test_get_calibration_with_valid_id_returns_200():
+def test_get_calibration_with_invalid_id_returns_404():
+def test_create_user_with_duplicate_email_returns_400():
+def test_calculate_signal_with_empty_image_raises_error():
+
+# ❌ Неинформативные
+def test_calibration():
+def test_1():
+def test_get():
+```
+
+## Параметризованные тесты
+
+```python
+import pytest
+
+@pytest.mark.parametrize("status_code,expected_count", [
+    ("active", 3),
+    ("completed", 2),
+    ("failed", 1),
+])
+def test_filter_by_status(client, create_measurements, status_code, expected_count):
+    response = client.get(f"/api/measurements?status={status_code}")
+    assert len(response.json()["items"]) == expected_count
+```
+
+## Моки
+
+```python
+from unittest.mock import patch, MagicMock
+
+def test_upload_image_to_s3(client):
+    with patch("services.s3_service.upload_file") as mock_upload:
+        mock_upload.return_value = "https://s3.example.com/image.jpg"
+        
+        response = client.post("/api/images", files={"file": b"image_data"})
+        
+        assert response.status_code == 200
+        mock_upload.assert_called_once()
+```
+
+## Асинхронные тесты
+
+```python
+import pytest
+
+@pytest.mark.asyncio
+async def test_async_operation():
+    result = await async_function()
+    assert result is not None
+```

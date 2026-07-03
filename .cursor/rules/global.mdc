@@ -1,0 +1,39 @@
+---
+description: Глобальные правила для проекта Team Assistant
+globs: 
+alwaysApply: true
+---
+
+# Team Assistant Project Rules
+
+## Общие принципы
+
+- Всегда отвечай на русском языке
+- Используй существующие паттерны и абстракции проекта
+- Не создавай новые файлы без явного запроса
+- Предпочитай редактирование существующих файлов
+- Следуй принципу DRY (Don't Repeat Yourself)
+- Минимизируй изменения — делай только то, что запрошено
+
+## Архитектура проекта
+
+AI-агент для помощи команде разработки:
+- `src/agent/` — логика агента и обработка сообщений
+- `src/tools/` — инструменты (GitLab, YouGile, Telegram, WebSearch)
+- `src/llm/` — клиент для работы с LLM
+- `src/ui/` — Web UI и WebSocket
+
+## Стек технологий
+
+- Backend: Python 3.11+, FastAPI, Pydantic v2
+- LLM: LiteLLM (DeepSeek, OpenAI, Google)
+- Интеграции: python-gitlab, Telethon, httpx
+- Контейнеризация: Docker, Docker Compose
+
+## Стиль кода Python
+
+- Используй type hints для всех функций
+- Docstrings в формате Google style
+- Async/await для I/O операций
+- Pydantic для валидации данных
+- ВСЕ конфигурационные параметры из .env

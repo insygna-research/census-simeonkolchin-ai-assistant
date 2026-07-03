@@ -1,0 +1,137 @@
+---
+description: Безопасность API
+globs: ["**/*.py"]
+alwaysApply: true
+---
+
+# Security Rules
+
+## Аутентификация
+
+### Все endpoint'ы требуют авторизации (кроме /auth/*)
+
+```python
+# ✅ Правильно — требуется current_user
+@router.get("/items")
+async def get_items(current_user: User = Depends(get_current_user)):
+    return await service.get_user_items(current_user.id)
+
+# ❌ Неправильно — открытый endpoint с данными
+@router.get("/items")
+async def get_items():
+    return await service.get_all_items()
+```
+
+## Валидация входных данных
+
+### Всегда используй Pydantic с ограничениями
+
+```python
+from pydantic import BaseModel, Field, validator
+import re
+
+class UserCreate(BaseModel):
+    email: str = Field(..., max_length=255)
+    password: str = Field(..., min_length=8, max_length=128)
+    name: str = Field(..., min_length=1, max_length=100)
+    
+    @validator("email")
+    def validate_email(cls, v):
+        if not re.match(r"^[\w\.-]+@[\w\.-]+\.\w+$", v):
+            raise ValueError("Invalid email format")
+        return v.lower()
+    
+    @validator("password")
+    def validate_password(cls, v):
+        if not any(c.isupper() for c in v):
+            raise ValueError("Password must contain uppercase")
+        if not any(c.isdigit() for c in v):
+            raise ValueError("Password must contain digit")
+        return v
+```
+
+## SQL Injection — НИКОГДА сырой SQL с пользовательским вводом
+
+```python
+# ✅ SQLAlchemy ORM
+items = db.query(Item).filter(Item.name == user_input).all()
+
+# ✅ Если нужен сырой SQL — параметризация
+from sqlalchemy import text
+result = db.execute(
+    text("SELECT * FROM items WHERE name = :name"),
+    {"name": user_input}
+)
+
+# ❌ НИКОГДА ТАК
+db.execute(f"SELECT * FROM items WHERE name = '{user_input}'")
+```
+
+## Path Traversal — валидация путей файлов
+
+```python
+import os
+
+def safe_join(base_dir: str, user_path: str) -> str:
+    """Безопасное объединение путей."""
+    # Нормализуем путь
+    full_path = os.path.normpath(os.path.join(base_dir, user_path))
+    # Проверяем что не вышли за пределы base_dir
+    if not full_path.startswith(os.path.normpath(base_dir)):
+        raise ValueError("Path traversal detected")
+    return full_path
+```
+
+## Секреты — только из переменных окружения
+
+```python
+from pydantic_settings import BaseSettings
+
+class Settings(BaseSettings):
+    database_url: str
+    jwt_secret: str
+    s3_access_key: str
+    s3_secret_key: str
+    
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+
+# ✅ Правильно
+settings = Settings()
+SECRET_KEY = settings.jwt_secret
+
+# ❌ Никогда не хардкодь секреты
+SECRET_KEY = "my-super-secret-key-123"
+```
+
+## Rate Limiting
+
+```python
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
+
+@router.post("/auth/login")
+@limiter.limit("5/minute")
+async def login(request: Request, credentials: LoginRequest):
+    # Защита от брутфорса
+    ...
+```
+
+## CORS — явные origins в production
+
+```python
+# ✅ Production
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://app.vetx.com", "https://admin.vetx.com"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
+)
+
+# ⚠️ Только для разработки
+allow_origins=["*"]
+```

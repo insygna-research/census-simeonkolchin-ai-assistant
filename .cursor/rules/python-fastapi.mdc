@@ -1,0 +1,120 @@
+---
+description: Python FastAPI микросервисы
+globs: ["**/*.py"]
+alwaysApply: false
+---
+
+# Python FastAPI Rules
+
+## Type Hints — ОБЯЗАТЕЛЬНО
+
+```python
+# ✅ Правильно
+async def get_calibration_by_id(
+    calibration_id: UUID,
+    db: Session
+) -> Optional[CalibrationSet]:
+    return db.query(CalibrationSet).filter(CalibrationSet.id == calibration_id).first()
+
+# ❌ Неправильно
+def get_calibration_by_id(calibration_id, db):
+    return db.query(CalibrationSet).filter(CalibrationSet.id == calibration_id).first()
+```
+
+## Обработка ошибок
+
+```python
+from fastapi import HTTPException
+
+# ✅ Используй HTTPException с правильными кодами
+@router.get("/{item_id}")
+async def get_item(item_id: UUID, db: Session = Depends(get_db)):
+    item = db.query(Item).filter(Item.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return item
+
+# ❌ Не возвращай None для ошибок
+@router.get("/{item_id}")
+async def get_item(item_id: UUID, db: Session = Depends(get_db)):
+    return db.query(Item).filter(Item.id == item_id).first()  # Может вернуть None!
+```
+
+## Pydantic схемы
+
+```python
+from pydantic import BaseModel, Field
+from typing import Optional
+from uuid import UUID
+from datetime import datetime
+
+class ItemBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    description: Optional[str] = Field(None, max_length=2000)
+
+class ItemCreate(ItemBase):
+    pass
+
+class ItemUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    description: Optional[str] = None
+
+class ItemResponse(ItemBase):
+    id: UUID
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True  # для SQLAlchemy моделей
+```
+
+## Dependency Injection
+
+```python
+# database.py
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# routers/items.py
+@router.get("/")
+async def list_items(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    skip: int = 0,
+    limit: int = 100
+):
+    return db.query(Item).offset(skip).limit(limit).all()
+```
+
+## Логирование
+
+```python
+import logging
+
+logger = logging.getLogger(__name__)
+
+# В функциях
+logger.info(f"Processing calibration {calibration_id}")
+logger.error(f"Failed to process image: {e}", exc_info=True)
+logger.debug(f"Signal calculated: {signal}")
+```
+
+## Временные файлы
+
+```python
+import tempfile
+import os
+
+# ✅ Всегда удаляй временные файлы
+with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as temp_file:
+    temp_path = temp_file.name
+try:
+    # Обработка файла
+    process_image(temp_path)
+finally:
+    if os.path.exists(temp_path):
+        os.unlink(temp_path)
+```

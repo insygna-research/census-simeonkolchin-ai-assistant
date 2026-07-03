@@ -1,0 +1,109 @@
+---
+description: SQLAlchemy и PostgreSQL
+globs: ["**/models.py", "**/database.py", "**/migrations/**"]
+alwaysApply: false
+---
+
+# Database Rules
+
+## Модели SQLAlchemy
+
+### Базовые поля для всех моделей
+
+```python
+from sqlalchemy import Column, DateTime
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.sql import func
+import uuid
+
+class Base:
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+```
+
+### Связи (relationships)
+
+```python
+# ✅ Используй back_populates
+class Project(Base):
+    __tablename__ = "projects"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(255), nullable=False)
+    
+    calibration_sets = relationship("CalibrationSet", back_populates="project")
+
+class CalibrationSet(Base):
+    __tablename__ = "calibration_sets"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False)
+    
+    project = relationship("Project", back_populates="calibration_sets")
+
+# ❌ Не используй backref (устаревший подход)
+calibration_sets = relationship("CalibrationSet", backref="project")
+```
+
+### Enum типы
+
+```python
+import enum
+from sqlalchemy import Enum as SQLEnum
+
+class BioType(str, enum.Enum):
+    DOG = "DOG"
+    CAT = "CAT"
+    COW = "COW"
+
+class Animal(Base):
+    bio_type = Column(SQLEnum(BioType), nullable=False)
+```
+
+### Индексы
+
+```python
+from sqlalchemy import Index
+
+class Measurement(Base):
+    __tablename__ = "measurements"
+    __table_args__ = (
+        Index("ix_measurements_calibration_created", "calibration_id", "created_at"),
+        Index("ix_measurements_status", "status"),
+    )
+```
+
+## Запросы
+
+```python
+# ✅ Явные фильтры
+items = db.query(Item).filter(
+    Item.status == "active",
+    Item.created_at >= date_from
+).all()
+
+# ✅ Joinedload для избежания N+1
+from sqlalchemy.orm import joinedload
+
+calibration = db.query(CalibrationSet).options(
+    joinedload(CalibrationSet.calibration_points),
+    joinedload(CalibrationSet.five_pl_data)
+).filter(CalibrationSet.id == calibration_id).first()
+
+# ❌ Сырой SQL (только в крайних случаях)
+db.execute("SELECT * FROM items WHERE name = :name", {"name": user_input})
+```
+
+## Транзакции
+
+```python
+# ✅ Явное управление транзакциями
+try:
+    db.add(item1)
+    db.add(item2)
+    db.commit()
+except Exception:
+    db.rollback()
+    raise
+```
