@@ -8,6 +8,15 @@ venv/
 env/
 .venv/
 .env
+.env.*
+!.env.example
+
+# Test / lint caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
 
 # IDE
 .idea/

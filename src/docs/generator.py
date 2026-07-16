@@ -191,7 +191,7 @@ class DocumentGenerator:
         for svc in report.services:
             for commit in svc.commits_since_last_doc:
                 for fc in commit.changed_files:
-                    section_id = _category_to_section.get(fc.category, "services")
+                    section_id = _CATEGORY_TO_SECTION.get(fc.category, "services")
                     fact = {
                         "service": svc.service_name,
                         "project_path": svc.project_path,

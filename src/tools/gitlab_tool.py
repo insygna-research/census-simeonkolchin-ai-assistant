@@ -17,7 +17,7 @@ class GitLabTool:
         Initialize GitLab tool
         
         Args:
-            url: GitLab URL (e.g., https://gitlab.uniweb.ru)
+            url: GitLab URL (e.g., https://gitlab.example.com)
             token: GitLab personal access token
             allowed_projects: Optional list of allowed project paths to filter
         """

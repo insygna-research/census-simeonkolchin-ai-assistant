@@ -19,7 +19,7 @@ class OutlineTool:
         Initialize Outline tool
         
         Args:
-            url: Outline Wiki URL (e.g., http://158.160.171.6:3000)
+            url: Outline Wiki URL (e.g., https://outline.example.com)
             api_token: Outline API token
         """
         self.base_url = url.rstrip('/')

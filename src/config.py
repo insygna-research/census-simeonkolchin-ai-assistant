@@ -45,7 +45,7 @@ class Settings(BaseSettings):
     GIGACHAT_VERIFY_SSL: bool = False  # у Сбера свой корневой сертификат (НУЦ Минцифры)
 
     # ============ GitLab Configuration ============
-    GITLAB_URL: str = ""  # e.g., https://gitlab.uniweb.ru
+    GITLAB_URL: str = ""  # e.g., https://gitlab.example.com
     GITLAB_TOKEN: str = ""  # Personal access token
     GITLAB_PROJECTS: str = ""  # Comma-separated list of allowed projects (optional filter)
     
@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     YOUGILE_PROJECTS: str = ""  # Comma-separated list of allowed projects (optional filter)
     
     # ============ Outline Configuration ============
-    OUTLINE_URL: str = ""  # e.g., http://158.160.171.6:3000
+    OUTLINE_URL: str = ""  # e.g., https://outline.example.com
     OUTLINE_API_TOKEN: str = ""  # Outline API token (ol_api_...)
 
     # ============ iCloud Configuration (Calendar + Reminders via CalDAV) ============
